@@ -1,19 +1,13 @@
 {
-  "name": "com.metaversemagna.tpromise",
-  "version": "1.0.1",
+  "name": "@enwongo/com.metaversemagna.tpromise",
+  "version": "1.0.0",
   "displayName": "T Promise",
-  "description": "This is an example package",
+  "description": "SDK for integrating games with the Metaverse Magna platform.",
   "unity": "2022.3",
-  "dependencies": {
-    "com.unity.cinemachine": "3.1.0"
- },
- "keywords": [
-    "keyword1",
-    "keyword2",
-    "keyword3"
-  ],
+  "keywords": ["mvm", "sdk", "unity", "games", "tournament"],
   "author": {
     "name": "Enwongo-Abasi Udomah",
     "url": "https://www.unity3d.com"
-  }
+  },
+  "license": "MIT"
 }
