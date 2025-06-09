@@ -1,5 +1,5 @@
 {
-  "name": "@enwongo/com.metaversemagna.tpromise",
+  "name": "com.metaversemagna.tpromise",
   "version": "1.0.0",
   "displayName": "T Promise",
   "description": "SDK for integrating games with the Metaverse Magna platform.",
@@ -9,5 +9,8 @@
     "name": "Enwongo-Abasi Udomah",
     "url": "https://www.unity3d.com"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
 }
