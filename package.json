@@ -1,0 +1,19 @@
+{
+  "name": "com.metaversemagna.tpromise",
+  "version": "1.0.0",
+  "displayName": "T Promise",
+  "description": "This is an example package",
+  "unity": "2022.3",
+  "dependencies": {
+    "com.unity.cinemachine": "3.1.0"
+ },
+ "keywords": [
+    "keyword1",
+    "keyword2",
+    "keyword3"
+  ],
+  "author": {
+    "name": "Enwongo-Abasi Udomah",
+    "url": "https://www.unity3d.com"
+  }
+}
