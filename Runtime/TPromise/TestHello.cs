@@ -10,6 +10,7 @@ namespace TPromise
         {
             Debug.Log($"Hello World! ");
             Camera.main.backgroundColor = Color.red;
+            Debug.Log($"V 2! ");
         }
     }
 }
