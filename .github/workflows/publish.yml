@@ -1,0 +1,32 @@
+name: Build Unity SDK and Prepare for OpenUPM
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  pack-and-release:
+    name: Pack SDK and Upload
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Pack Unity SDK
+        run: |
+          cd Packages/com.metaversemagna.tpromise
+          npm pack
+          mv *.tgz ../../../com.metaversemagna.tpromise-${GITHUB_REF#refs/tags/v}.tgz
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: unity-sdk-tpromise
+          path: com.metaversemagna.tpromise-*.tgz
