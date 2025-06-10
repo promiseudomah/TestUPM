@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v1.2.0...v1.2.1) (2025-06-10)
+
+
+### Bug Fixes
+
+* package.json ([240a23d](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/240a23d82ccd2f67bed85d9181d5f17f60da14ad))
+
 # [1.2.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v1.1.1...v1.2.0) (2025-06-10)
 
 
