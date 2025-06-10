@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.1.0...v2.1.1) (2025-06-10)
+
+
+### Bug Fixes
+
+* Added missing run method. ([c5ccc90](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/c5ccc9073c3b41a325e1d8e5c88a62062f8766c3))
+
 # [2.1.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.0.1...v2.1.0) (2025-06-10)
 
 
