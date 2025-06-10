@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v1.1.1...v1.2.0) (2025-06-10)
+
+
+### Features
+
+* camera color to yellow ([385058d](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/385058d54adae5e8a3ae4d43bd5a738ce8b08168))
+
 ## [1.1.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v1.1.0...v1.1.1) (2025-06-10)
 
 
