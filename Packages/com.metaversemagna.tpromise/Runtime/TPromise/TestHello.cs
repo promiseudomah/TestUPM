@@ -1,16 +1,54 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace TPromise
 {
-    public class TestHello 
+    public class TestHello : MonoBehaviour
     {
-        public void Run()
+        void Start()
         {
-            Debug.Log($"Hello World! ");
-            Camera.main.backgroundColor = Color.yellow;
-            Debug.Log($"V 2! ");
+            // Set the background color to baby purple
+            Camera.main.backgroundColor = new Color(0.85f, 0.7f, 1f); // Soft/baby purple
+
+            // Create a Canvas if one doesn't exist
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                GameObject canvasGO = new GameObject("Canvas");
+                canvas = canvasGO.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvasGO.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                canvasGO.AddComponent<GraphicRaycaster>();
+            }
+
+            // Create and configure "Hello World!" Text
+            CreateUIText(canvas.transform, "Hello World!", new Vector2(0, 50));
+
+            // Create and configure "Nice work Promise" Text
+            CreateUIText(canvas.transform, "Nice work Promise.", new Vector2(0, -10));
+
+            Debug.Log("Canvas and Text created!");
+        }
+
+        void CreateUIText(Transform parent, string text, Vector2 anchoredPosition)
+        {
+            GameObject textGO = new GameObject("UIText");
+            textGO.transform.SetParent(parent);
+
+            Text uiText = textGO.AddComponent<Text>();
+            uiText.text = text;
+            uiText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            uiText.fontSize = 32;
+            uiText.alignment = TextAnchor.MiddleCenter;
+            uiText.color = Color.black;
+
+            RectTransform rectTransform = uiText.GetComponent<RectTransform>();
+            rectTransform.sizeDelta = new Vector2(600, 100);
+            rectTransform.anchoredPosition = anchoredPosition;
+            rectTransform.localScale = Vector3.one;
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
         }
     }
 }
