@@ -9,8 +9,7 @@ namespace TPromise
         {
             // Set the background color to baby purple
             Camera.main.backgroundColor = new Color(0.855f, 0.7f, 1f);
-
-            // Create a Canvas if one doesn't exist
+            
             Canvas canvas = FindObjectOfType<Canvas>();
             if (canvas == null)
             {
