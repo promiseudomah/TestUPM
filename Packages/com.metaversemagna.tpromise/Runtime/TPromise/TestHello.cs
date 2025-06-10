@@ -5,7 +5,7 @@ namespace TPromise
 {
     public class TestHello : MonoBehaviour
     {
-        void Start()
+        public void Run()
         {
             // Set the background color to baby purple
             Camera.main.backgroundColor = new Color(0.855f, 0.7f, 1f);
@@ -30,7 +30,7 @@ namespace TPromise
             Debug.Log("Canvas and Text created!");
         }
 
-        void CreateUIText(Transform parent, string text, Vector2 anchoredPosition)
+        private void CreateUIText(Transform parent, string text, Vector2 anchoredPosition)
         {
             GameObject textGO = new GameObject("UIText");
             textGO.transform.SetParent(parent);
