@@ -1,10 +1,16 @@
 {
   "name": "com.metaversemagna.tpromise",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "displayName": "T Promise",
   "description": "SDK for integrating games with the Metaverse Magna.",
   "unity": "2022.3",
-  "keywords": ["mvm", "sdk", "unity", "games", "tournament"],
+  "keywords": [
+    "mvm",
+    "sdk",
+    "unity",
+    "games",
+    "tournament"
+  ],
   "author": {
     "name": "Enwongo-Abasi M. Udomah",
     "url": "https://www.unity3d.com"
