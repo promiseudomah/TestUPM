@@ -37,5 +37,17 @@
     "@semantic-release/github": "^11.0.3",
     "@semantic-release/npm": "^11.0.0",
     "semantic-release": "^24.2.5"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "scopedRegistries": [
+    {
+      "name": "Unity Packages",
+      "url": "https://packages.unity.com",
+      "scopes": [
+        "com.unity"
+      ]
+    }
+  ]
 }
