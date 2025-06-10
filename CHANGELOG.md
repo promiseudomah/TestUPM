@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.0.0...v2.0.1) (2025-06-10)
+
+
+### Bug Fixes
+
+* color fix ([0fb6e6a](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/0fb6e6a3886f233592ecd1f3551c5b3bb77b9352))
+
 # [2.0.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v1.2.2...v2.0.0) (2025-06-10)
 
 

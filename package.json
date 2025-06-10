@@ -1,6 +1,6 @@
 {
   "name": "com.metaversemagna.tpromise",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "displayName": "T Promise",
   "description": "SDK for integrating games with the Metaverse Magna platform.",
   "unity": "2022.3",
