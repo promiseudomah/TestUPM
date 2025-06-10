@@ -4,22 +4,32 @@
   "displayName": "T Promise",
   "description": "SDK for integrating games with the Metaverse Magna platform.",
   "unity": "2022.3",
+  "unityRelease": "0b5",
+  "dependencies": {
+    "com.unity.textmeshpro": "3.0.7"
+  },
   "keywords": [
     "mvm",
     "sdk",
     "unity",
     "games",
-    "tournament"
+    "tournament",
+    "official",
+    "verified"
   ],
   "author": {
     "name": "Promise",
-    "url": "https://www.unity3d.com"
+    "email": "your@email.com",
+    "url": "https://mvm.gg/"
   },
   "license": "MIT",
+  "licensesUrl": "https://github.com/promiseudomah/com.metaversemagna.tpromise/blob/main/LICENSE.md",
+  "changelogUrl": "https://github.com/promiseudomah/com.metaversemagna.tpromise/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/promiseudomah/com.metaversemagna.tpromise#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/promiseudomah/com.metaversemagna.tpromise.git",
-    "revision": "v1.0.3"
+    "revision": "v1.2.2"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -27,5 +37,8 @@
     "@semantic-release/github": "^11.0.3",
     "@semantic-release/npm": "^11.0.0",
     "semantic-release": "^24.2.5"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   }
 }
