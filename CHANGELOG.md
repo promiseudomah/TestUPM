@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.0.1...v2.1.0) (2025-06-10)
+
+
+### Features
+
+* camera color to purple ([5219b2a](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/5219b2addb41ce8db985a8cc0710ba437a842cb3))
+
 ## [2.0.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.0.0...v2.0.1) (2025-06-10)
 
 
