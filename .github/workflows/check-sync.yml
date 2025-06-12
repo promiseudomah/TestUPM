@@ -99,7 +99,7 @@ jobs:
           script: |
             const title = context.payload.pull_request.title;
             const status = "${{ steps.result.outputs.sync_status }}";
-            const newPrefix = status === 'in_sync' ? '[SYNC OK ✅]' : '[SYNC ❌]';
+            const newPrefix = status === 'in_sync' ? '[UPM SYNC ✅]' : '[UPM OUT-OF-SYNC ❌]';
             const updatedTitle = title.replace(/\[SYNC.*?\]\s*/g, '');
             const finalTitle = `${newPrefix} ${updatedTitle}`;
 
