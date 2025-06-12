@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.1.2...v2.1.3) (2025-06-12)
+
+
+### Bug Fixes
+
+* Update TestHello.cs ([0863683](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/08636834010f016cd837b846aca688e308443897))
+
 ## [2.1.2](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.1.1...v2.1.2) (2025-06-10)
 
 
