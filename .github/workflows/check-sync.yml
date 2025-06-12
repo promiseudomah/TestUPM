@@ -45,7 +45,7 @@ jobs:
                   print(f'Error comparing files: {e}')
                   return False
 
-          src = 'Assets/TPromise'
+          src = 'UnityDevProject/Assets/TPromise'
           dst = 'upm/com.metaversemagna.tpromise'
           out_of_sync = False
 
