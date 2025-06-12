@@ -20,8 +20,6 @@ namespace TPromise
             }
 
             CreateUIText(canvas.transform, "Hello World!", new Vector2(0, 50));
-
-            // Create and configure "Nice work Promise" Text
             CreateUIText(canvas.transform, "Nice work Promise.", new Vector2(0, -10));
 
             Debug.Log("Canvas and Text created!");
