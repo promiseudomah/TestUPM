@@ -17,11 +17,15 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+        with:
+          path: 'src'  # Checkout to src directory to avoid path confusion
 
       - name: Compare SDK source and UPM copy
         id: check
         run: |
-          echo "Checking if Assets/TPromise and UPM are in sync..."
+          echo "Checking if src/UnityDevProject/Assets/TPromise and src/upm/com.metaversemagna.tpromise are in sync..."
+          
+          cd src  # Change to the checked out directory
           
           python3 <<EOF
           import os
@@ -52,10 +56,16 @@ jobs:
           # Check if directories exist
           if not os.path.exists(src):
               print(f'Error: Source directory {src} does not exist')
+              print('Current working directory: ' + os.getcwd())
+              print('Directory contents:')
+              os.system('ls -R')
               sys.exit(1)
 
           if not os.path.exists(dst):
               print(f'Error: Destination directory {dst} does not exist')
+              print('Current working directory: ' + os.getcwd())
+              print('Directory contents:')
+              os.system('ls -R')
               sys.exit(1)
 
           src_files = walk_files(src)
@@ -82,7 +92,7 @@ jobs:
                   break
 
           # Write result
-          with open('sync_status.txt', 'w') as f:
+          with open('../sync_status.txt', 'w') as f:
               f.write('out_of_sync' if out_of_sync else 'in_sync')
 
           sys.exit(1 if out_of_sync else 0)
@@ -90,7 +100,9 @@ jobs:
 
       - name: Set status output
         id: result
-        run: echo "sync_status=$(cat sync_status.txt)" >> $GITHUB_OUTPUT
+        run: echo "sync_status=$(cat src/sync_status.txt)" >> $GITHUB_OUTPUT
+
+      # ... [rest of your existing workflow steps remain unchanged] ...
 
       - name: Update PR title with sync badge
         if: always()
