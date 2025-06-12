@@ -7,7 +7,6 @@ namespace TPromise
     {
         public void Run()
         {
-            // Set the background color to baby purple
             Camera.main.backgroundColor = new Color(0.855f, 0.7f, 1f);
             
             Canvas canvas = FindObjectOfType<Canvas>();
