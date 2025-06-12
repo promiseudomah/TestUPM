@@ -20,7 +20,7 @@ jobs:
         run: |
           echo "Checking if Assets/TPromise and UPM are in sync..."
           
-          python3 <<EOF
+          python3 - <<EOF
 import os, sys
 
 def walk_files(base):
