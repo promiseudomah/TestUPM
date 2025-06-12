@@ -16,7 +16,7 @@ jobs:
 
       - name: Pack SDK
         run: |
-          cd Packages/com.metaversemagna.tpromise
+          cd upm/com.metaversemagna.tpromise
           npm pack
           mv *.tgz ../../../com.metaversemagna.tpromise-${GITHUB_REF#refs/tags/v}.tgz
 
