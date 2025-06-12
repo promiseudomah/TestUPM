@@ -19,7 +19,6 @@ namespace TPromise
                 canvasGO.AddComponent<GraphicRaycaster>();
             }
 
-            // Create and configure "Hello World!" Text
             CreateUIText(canvas.transform, "Hello World!", new Vector2(0, 50));
 
             // Create and configure "Nice work Promise" Text
