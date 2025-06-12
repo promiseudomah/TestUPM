@@ -1,0 +1,123 @@
+name: Check SDK Sync
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Compare SDK source and UPM copy
+        id: check
+        run: |
+          echo "Checking if Assets/TPromise and UPM are in sync..."
+          
+          python3 <<EOF
+import os, sys
+
+def walk_files(base):
+    return sorted([
+        os.path.relpath(os.path.join(root, f), base)
+        for root, _, files in os.walk(base)
+        for f in files
+    ])
+
+def files_equal(f1, f2):
+    try:
+        return open(f1, 'rb').read() == open(f2, 'rb').read()
+    except:
+        return False
+
+src = "Assets/TPromise"
+dst = "upm/com.metaversemagna.tpromise"
+out_of_sync = False
+
+src_files = walk_files(src)
+for rel_path in src_files:
+    full_src = os.path.join(src, rel_path)
+    full_dst = os.path.join(dst, rel_path)
+    if not os.path.exists(full_dst) or not files_equal(full_src, full_dst):
+        print(f"Mismatch: {rel_path}")
+        out_of_sync = True
+        break
+
+if out_of_sync:
+    with open("sync_status.txt", "w") as f:
+        f.write("out_of_sync")
+    sys.exit(1)
+else:
+    with open("sync_status.txt", "w") as f:
+        f.write("in_sync")
+EOF
+
+      - name: Set status output
+        id: result
+        if: always()
+        run: echo "sync_status=$(cat sync_status.txt)" >> $GITHUB_OUTPUT
+
+      - name: Update PR title with sync badge
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const status = "${{ steps.result.outputs.sync_status }}";
+            const newPrefix = status === 'in_sync' ? '[SYNC OK ✅]' : '[SYNC ❌]';
+            const updatedTitle = title.replace(/\[SYNC.*?\]\s*/g, '');
+            const finalTitle = `${newPrefix} ${updatedTitle}`;
+
+            if (finalTitle !== title) {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                title: finalTitle
+              });
+            }
+
+      - name: Post comment if out of sync
+        if: steps.result.outputs.sync_status == 'out_of_sync'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⚠️ **HyperSDK Sync Required**
+
+Please run **HyperSDK > Sync to UPM** in Unity to sync the SDK.
+
+Once synced, commit and push the changes to resolve this issue.`
+            });
+
+      - name: Delete sync comment if resolved
+        if: steps.result.outputs.sync_status == 'in_sync'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const syncComments = comments.data.filter(c =>
+              c.body && c.body.includes('**HyperSDK Sync Required**')
+            );
+
+            for (const comment of syncComments) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id
+              });
+            }
