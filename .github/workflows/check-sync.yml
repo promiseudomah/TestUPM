@@ -3,6 +3,7 @@ name: Check SDK Sync
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   check-sync:
@@ -10,7 +11,8 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-      issues: write
+      statuses: write
+      checks: write
 
     steps:
       - name: Checkout Repo
@@ -110,16 +112,58 @@ jobs:
               });
             }
 
-      - name: Post comment if out of sync
+      - name: Post or update sync comment
         if: steps.result.outputs.sync_status == 'out_of_sync'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `⚠️ **TPromise SDK Sync Required**\n\nPlease run **TPromise > Sync to UPM** in Unity to sync the SDK.\n\nOnce synced, commit and push the changes to resolve this issue.`
+              issue_number: context.issue.number
+            });
+
+            const syncComment = comments.data.find(c => 
+              c.body.includes('**TPromise SDK Sync Required**')
+            );
+
+            const commentBody = `⚠️ **TPromise SDK Sync Required**\n\n` +
+              `Please run **TPromise > Sync to UPM** in Unity to sync the SDK.\n\n` +
+              `Once synced, commit and push the changes to resolve this issue.\n\n` +
+              `*This PR cannot be merged until SDKs are in sync*`;
+
+            if (syncComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: syncComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            }
+
+            // Set check to failed
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'SDK Sync Check',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: 'failure',
+              output: {
+                title: 'SDK Out of Sync',
+                summary: 'TPromise SDK files are not in sync between source and UPM',
+                text: commentBody
+              }
             });
 
       - name: Delete sync comment if resolved
@@ -144,3 +188,18 @@ jobs:
                 comment_id: comment.id
               });
             }
+
+            // Set check to success
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'SDK Sync Check',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: 'success',
+              output: {
+                title: 'SDK In Sync',
+                summary: 'TPromise SDK files are properly synced',
+                text: 'All SDK files are in sync between source and UPM'
+              }
+            });
