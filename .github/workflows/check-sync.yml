@@ -3,6 +3,7 @@ name: Check SDK Sync
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   check-sync:
@@ -10,58 +11,98 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+      statuses: write
+      checks: write
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+        with:
+          path: 'src'  # Checkout to src directory to avoid path confusion
 
       - name: Compare SDK source and UPM copy
         id: check
         run: |
-          echo "Checking if Assets/TPromise and UPM are in sync..."
+          echo "Checking if src/UnityDevProject/Assets/TPromise and src/upm/com.metaversemagna.tpromise are in sync..."
+          
+          cd src  # Change to the checked out directory
           
           python3 <<EOF
-import os, sys
+          import os
+          import sys
 
-def walk_files(base):
-    return sorted([
-        os.path.relpath(os.path.join(root, f), base)
-        for root, _, files in os.walk(base)
-        for f in files
-    ])
+          def walk_files(base):
+              if not os.path.exists(base):
+                  return []
+              return sorted([
+                  os.path.relpath(os.path.join(root, f), base)
+                  for root, _, files in os.walk(base)
+                  for f in files
+                  if not f.endswith('.meta')
+              ])
 
-def files_equal(f1, f2):
-    try:
-        return open(f1, 'rb').read() == open(f2, 'rb').read()
-    except:
-        return False
+          def files_equal(f1, f2):
+              try:
+                  with open(f1, 'rb') as file1, open(f2, 'rb') as file2:
+                      return file1.read() == file2.read()
+              except Exception as e:
+                  print(f'Error comparing files: {e}')
+                  return False
 
-src = "Assets/TPromise"
-dst = "upm/com.metaversemagna.tpromise"
-out_of_sync = False
+          src = 'UnityDevProject/Assets/TPromise'
+          dst = 'upm/com.metaversemagna.tpromise'
+          out_of_sync = False
 
-src_files = walk_files(src)
-for rel_path in src_files:
-    full_src = os.path.join(src, rel_path)
-    full_dst = os.path.join(dst, rel_path)
-    if not os.path.exists(full_dst) or not files_equal(full_src, full_dst):
-        print(f"Mismatch: {rel_path}")
-        out_of_sync = True
-        break
+          # Check if directories exist
+          if not os.path.exists(src):
+              print(f'Error: Source directory {src} does not exist')
+              print('Current working directory: ' + os.getcwd())
+              print('Directory contents:')
+              os.system('ls -R')
+              sys.exit(1)
 
-if out_of_sync:
-    with open("sync_status.txt", "w") as f:
-        f.write("out_of_sync")
-    sys.exit(1)
-else:
-    with open("sync_status.txt", "w") as f:
-        f.write("in_sync")
-EOF
+          if not os.path.exists(dst):
+              print(f'Error: Destination directory {dst} does not exist')
+              print('Current working directory: ' + os.getcwd())
+              print('Directory contents:')
+              os.system('ls -R')
+              sys.exit(1)
+
+          src_files = walk_files(src)
+          dst_files = walk_files(dst)
+
+          # Check for missing files
+          if len(src_files) != len(dst_files):
+              print(f'File count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files')
+              out_of_sync = True
+
+          # Compare files
+          for rel_path in src_files:
+              full_src = os.path.join(src, rel_path)
+              full_dst = os.path.join(dst, rel_path)
+              
+              if not os.path.exists(full_dst):
+                  print(f'Missing in destination: {rel_path}')
+                  out_of_sync = True
+                  break
+                  
+              if not files_equal(full_src, full_dst):
+                  print(f'Content mismatch: {rel_path}')
+                  out_of_sync = True
+                  break
+
+          # Write result
+          with open('../sync_status.txt', 'w') as f:
+              f.write('out_of_sync' if out_of_sync else 'in_sync')
+
+          sys.exit(1 if out_of_sync else 0)
+          EOF
 
       - name: Set status output
         id: result
-        if: always()
-        run: echo "sync_status=$(cat sync_status.txt)" >> $GITHUB_OUTPUT
+        run: echo "sync_status=$(cat src/sync_status.txt)" >> $GITHUB_OUTPUT
+
+      # ... [rest of your existing workflow steps remain unchanged] ...
 
       - name: Update PR title with sync badge
         if: always()
@@ -70,7 +111,7 @@ EOF
           script: |
             const title = context.payload.pull_request.title;
             const status = "${{ steps.result.outputs.sync_status }}";
-            const newPrefix = status === 'in_sync' ? '[SYNC OK ✅]' : '[SYNC ❌]';
+            const newPrefix = status === 'in_sync' ? '[UPM SYNC ✅]' : '[UPM OUT-OF-SYNC ❌]';
             const updatedTitle = title.replace(/\[SYNC.*?\]\s*/g, '');
             const finalTitle = `${newPrefix} ${updatedTitle}`;
 
@@ -83,20 +124,58 @@ EOF
               });
             }
 
-      - name: Post comment if out of sync
+      - name: Post or update sync comment
         if: steps.result.outputs.sync_status == 'out_of_sync'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `⚠️ **HyperSDK Sync Required**
+              issue_number: context.issue.number
+            });
 
-Please run **HyperSDK > Sync to UPM** in Unity to sync the SDK.
+            const syncComment = comments.data.find(c => 
+              c.body.includes('**TPromise SDK Sync Required**')
+            );
 
-Once synced, commit and push the changes to resolve this issue.`
+            const commentBody = `⚠️ **TPromise SDK Sync Required**\n\n` +
+              `Please run **TPromise > Sync to UPM** in Unity to sync the SDK.\n\n` +
+              `Once synced, commit and push the changes to resolve this issue.\n\n` +
+              `*This PR cannot be merged until SDKs are in sync*`;
+
+            if (syncComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: syncComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            }
+
+            // Set check to failed
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'SDK Sync Check',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: 'failure',
+              output: {
+                title: 'SDK Out of Sync',
+                summary: 'TPromise SDK files are not in sync between source and UPM',
+                text: commentBody
+              }
             });
 
       - name: Delete sync comment if resolved
@@ -111,7 +190,7 @@ Once synced, commit and push the changes to resolve this issue.`
             });
 
             const syncComments = comments.data.filter(c =>
-              c.body && c.body.includes('**HyperSDK Sync Required**')
+              c.body && c.body.includes('**TPromise SDK Sync Required**')
             );
 
             for (const comment of syncComments) {
@@ -121,3 +200,18 @@ Once synced, commit and push the changes to resolve this issue.`
                 comment_id: comment.id
               });
             }
+
+            // Set check to success
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'SDK Sync Check',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: 'success',
+              output: {
+                title: 'SDK In Sync',
+                summary: 'TPromise SDK files are properly synced',
+                text: 'All SDK files are in sync between source and UPM'
+              }
+            });
