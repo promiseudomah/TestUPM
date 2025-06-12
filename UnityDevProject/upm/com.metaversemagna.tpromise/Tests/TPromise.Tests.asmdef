@@ -1,0 +1,16 @@
+{
+    "name": "Tests",
+    "rootNamespace": "TPromise.Tests",
+    "references": [
+        "GUID:90943899524f74b468f02e4c2abb44c2"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
