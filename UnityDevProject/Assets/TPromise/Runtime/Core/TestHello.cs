@@ -7,7 +7,7 @@ namespace TPromise
     {
         public void Run()
         {
-            Camera.main.backgroundColor = Color.yellow;
+            Camera.main.backgroundColor = Color.cyan;
             
             Canvas canvas = FindObjectOfType<Canvas>();
             if (canvas == null)
