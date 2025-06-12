@@ -7,7 +7,7 @@ namespace TPromise
     {
         public void Run()
         {
-            Camera.main.backgroundColor = new Color(0.7f, 0.6f, 0.5f);
+            Camera.main.backgroundColor = Color.red;
             
             Canvas canvas = FindObjectOfType<Canvas>();
             if (canvas == null)
@@ -33,7 +33,7 @@ namespace TPromise
             Text uiText = textGO.AddComponent<Text>();
             uiText.text = text;
             uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            uiText.fontSize = 32;
+            uiText.fontSize = 40;
             uiText.alignment = TextAnchor.MiddleCenter;
             uiText.color = Color.black;
 
