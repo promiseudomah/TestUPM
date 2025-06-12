@@ -35,8 +35,8 @@ def files_equal(f1, f2):
     except:
         return False
 
-src = "Assets/TPromise"
-dst = "upm/com.metaversemagna.tpromise"
+src = 'Assets/TPromise'
+dst = 'upm/com.metaversemagna.tpromise'
 out_of_sync = False
 
 src_files = walk_files(src)
@@ -44,18 +44,17 @@ for rel_path in src_files:
     full_src = os.path.join(src, rel_path)
     full_dst = os.path.join(dst, rel_path)
     if not os.path.exists(full_dst) or not files_equal(full_src, full_dst):
-        print(f"Mismatch: {rel_path}")
+        print(f'Mismatch: {rel_path}')
         out_of_sync = True
         break
 
 if out_of_sync:
-    with open("sync_status.txt", "w") as f:
-        f.write("out_of_sync")
+    with open('sync_status.txt', 'w') as f:
+        f.write('out_of_sync')
     sys.exit(1)
 else:
-    with open("sync_status.txt", "w") as f:
-        f.write("in_sync")
-EOF
+    with open('sync_status.txt', 'w') as f:
+        f.write('in_sync')"
 
       - name: Set status output
         id: result
