@@ -119,11 +119,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `⚠️ **HyperSDK Sync Required**
-
-Please run **HyperSDK > Sync to UPM** in Unity to sync the SDK.
-
-Once synced, commit and push the changes to resolve this issue.`
+              body: `⚠️ **TPromise SDK Sync Required**\n\nPlease run **TPromise > Sync to UPM** in Unity to sync the SDK.\n\nOnce synced, commit and push the changes to resolve this issue.`
             });
 
       - name: Delete sync comment if resolved
@@ -138,7 +134,7 @@ Once synced, commit and push the changes to resolve this issue.`
             });
 
             const syncComments = comments.data.filter(c =>
-              c.body && c.body.includes('**HyperSDK Sync Required**')
+              c.body && c.body.includes('**TPromise SDK Sync Required**')
             );
 
             for (const comment of syncComments) {
