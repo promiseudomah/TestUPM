@@ -10,6 +10,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+      issues: write
 
     steps:
       - name: Checkout Repo
@@ -20,45 +21,73 @@ jobs:
         run: |
           echo "Checking if Assets/TPromise and UPM are in sync..."
           
-          python3 -c "import os, sys
+          python3 -c "
+import os
+import sys
 
 def walk_files(base):
+    if not os.path.exists(base):
+        return []
     return sorted([
         os.path.relpath(os.path.join(root, f), base)
         for root, _, files in os.walk(base)
         for f in files
+        if not f.endswith('.meta')
     ])
 
 def files_equal(f1, f2):
     try:
-        return open(f1, 'rb').read() == open(f2, 'rb').read()
-    except:
+        with open(f1, 'rb') as file1, open(f2, 'rb') as file2:
+            return file1.read() == file2.read()
+    except Exception as e:
+        print(f'Error comparing files: {e}')
         return False
 
 src = 'Assets/TPromise'
 dst = 'upm/com.metaversemagna.tpromise'
 out_of_sync = False
 
+# Check if directories exist
+if not os.path.exists(src):
+    print(f'Error: Source directory {src} does not exist')
+    sys.exit(1)
+
+if not os.path.exists(dst):
+    print(f'Error: Destination directory {dst} does not exist')
+    sys.exit(1)
+
 src_files = walk_files(src)
+dst_files = walk_files(dst)
+
+# Check for missing files
+if len(src_files) != len(dst_files):
+    print(f'File count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files')
+    out_of_sync = True
+
+# Compare files
 for rel_path in src_files:
     full_src = os.path.join(src, rel_path)
     full_dst = os.path.join(dst, rel_path)
-    if not os.path.exists(full_dst) or not files_equal(full_src, full_dst):
-        print(f'Mismatch: {rel_path}')
+    
+    if not os.path.exists(full_dst):
+        print(f'Missing in destination: {rel_path}')
+        out_of_sync = True
+        break
+        
+    if not files_equal(full_src, full_dst):
+        print(f'Content mismatch: {rel_path}')
         out_of_sync = True
         break
 
-if out_of_sync:
-    with open('sync_status.txt', 'w') as f:
-        f.write('out_of_sync')
-    sys.exit(1)
-else:
-    with open('sync_status.txt', 'w') as f:
-        f.write('in_sync')"
+# Write result
+with open('sync_status.txt', 'w') as f:
+    f.write('out_of_sync' if out_of_sync else 'in_sync')
+
+sys.exit(1 if out_of_sync else 0)
+"
 
       - name: Set status output
         id: result
-        if: always()
         run: echo "sync_status=$(cat sync_status.txt)" >> $GITHUB_OUTPUT
 
       - name: Update PR title with sync badge
