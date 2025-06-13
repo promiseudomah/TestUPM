@@ -35,7 +35,7 @@ namespace TPromise.Utilities
                 Directory.Delete(destinationPath, true);
             }
 
-            Debug.Log("<color=#E7D33DFF>[HyperSDK Sync] Copying from: " + sourcePath + " to: " + destinationPath +"</color>");
+            Debug.Log("<color=#E7B73DFF>[HyperSDK Sync] Copying from: " + sourcePath + " to: " + destinationPath +"</color>");
             CopyDirectory(sourcePath, destinationPath);
             AssetDatabase.Refresh();
             Debug.Log("<color=#3DE73DFF>[HyperSDK Sync] UPM sync complete.</color>");
