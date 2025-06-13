@@ -179,7 +179,7 @@ jobs:
               .trim();
             
             const newPrefix = status === 'in_sync' 
-              ? '[UPM SYNC ✅]' 
+              ? '[UPM SYNCED ✅]' 
               : status === 'error'
                 ? '[SYNC ERROR ❗]'
                 : '[UPM OUT-OF-SYNC ❌]';
