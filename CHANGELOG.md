@@ -1,3 +1,11 @@
+## [2.2.2](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.2.1...v2.2.2) (2025-06-13)
+
+
+### Bug Fixes
+
+* clean up ([564699c](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/564699c4389fa230d3b35a5c5de0f40c7dda4142))
+* synced clean up ([57e4e0c](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/57e4e0cb9a50cfc0cfbf8bdb318a9d911caaab6e))
+
 ## [2.2.1](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.2.0...v2.2.1) (2025-06-13)
 
 
