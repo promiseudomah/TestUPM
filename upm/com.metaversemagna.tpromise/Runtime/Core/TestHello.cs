@@ -21,8 +21,6 @@ namespace TPromise
 
             CreateUIText(canvas.transform, "Hello World!", new Vector2(0, 50));
             CreateUIText(canvas.transform, "Nice work Promise.", new Vector2(0, -10));
-
-            Debug.Log("Canvas and Text created!");
         }
 
         private void CreateUIText(Transform parent, string text, Vector2 anchoredPosition)

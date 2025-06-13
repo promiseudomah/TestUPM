@@ -13,107 +13,178 @@ jobs:
       contents: read
       statuses: write
       checks: write
+      issues: write
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
-          path: 'src'  # Checkout to src directory to avoid path confusion
+          path: 'src'
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
       - name: Compare SDK source and UPM copy
         id: check
         run: |
           echo "Checking if src/UnityDevProject/Assets/TPromise and src/upm/com.metaversemagna.tpromise are in sync..."
           
-          cd src  # Change to the checked out directory
+          # Create workspace directory if it doesn't exist
+          mkdir -p workspace
+          
+          cd src
           
           python3 <<EOF
           import os
           import sys
+          from pathlib import Path
+
+          def debug_print(*args):
+              print(*args, file=sys.stderr)
 
           def walk_files(base):
               if not os.path.exists(base):
+                  debug_print(f"Directory does not exist: {base}")
                   return []
-              return sorted([
-                  os.path.relpath(os.path.join(root, f), base)
-                  for root, _, files in os.walk(base)
-                  for f in files
-                  if not f.endswith('.meta')
-              ])
+              files = []
+              for root, _, filenames in os.walk(base):
+                  for f in filenames:
+                      if f.endswith('.meta'):
+                          continue
+                      full_path = os.path.join(root, f)
+                      rel_path = os.path.relpath(full_path, base)
+                      files.append(rel_path)
+              return sorted(files)
 
           def files_equal(f1, f2):
               try:
+                  # Compare binary content
                   with open(f1, 'rb') as file1, open(f2, 'rb') as file2:
                       return file1.read() == file2.read()
               except Exception as e:
-                  print(f'Error comparing files: {e}')
+                  debug_print(f"Error comparing {f1} and {f2}: {str(e)}")
                   return False
 
           src = 'UnityDevProject/Assets/TPromise'
           dst = 'upm/com.metaversemagna.tpromise'
           out_of_sync = False
 
+          debug_print("=== Starting Sync Check ===")
+          debug_print(f"Source: {src}")
+          debug_print(f"Destination: {dst}")
+
           # Check if directories exist
           if not os.path.exists(src):
-              print(f'Error: Source directory {src} does not exist')
-              print('Current working directory: ' + os.getcwd())
-              print('Directory contents:')
-              os.system('ls -R')
+              debug_print(f"Error: Source directory {src} does not exist")
+              with open('../workspace/sync_status.txt', 'w') as f:
+                  f.write('error')
               sys.exit(1)
 
           if not os.path.exists(dst):
-              print(f'Error: Destination directory {dst} does not exist')
-              print('Current working directory: ' + os.getcwd())
-              print('Directory contents:')
-              os.system('ls -R')
+              debug_print(f"Error: Destination directory {dst} does not exist")
+              with open('../workspace/sync_status.txt', 'w') as f:
+                  f.write('error')
               sys.exit(1)
 
           src_files = walk_files(src)
           dst_files = walk_files(dst)
 
+          debug_print(f"\nSource files ({len(src_files)}):")
+          debug_print("\n".join(src_files[:10]) + ("\n..." if len(src_files) > 10 else ""))
+          
+          debug_print(f"\nDestination files ({len(dst_files)}):")
+          debug_print("\n".join(dst_files[:10]) + ("\n..." if len(dst_files) > 10 else ""))
+
           # Check for missing files
           if len(src_files) != len(dst_files):
-              print(f'File count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files')
+              debug_print(f"\nFile count mismatch: Source {len(src_files)} vs Destination {len(dst_files)}")
               out_of_sync = True
+          else:
+              debug_print("\nFile counts match")
 
           # Compare files
-          for rel_path in src_files:
-              full_src = os.path.join(src, rel_path)
-              full_dst = os.path.join(dst, rel_path)
-              
-              if not os.path.exists(full_dst):
-                  print(f'Missing in destination: {rel_path}')
-                  out_of_sync = True
-                  break
+          if not out_of_sync:
+              for rel_path in src_files:
+                  full_src = os.path.join(src, rel_path)
+                  full_dst = os.path.join(dst, rel_path)
                   
-              if not files_equal(full_src, full_dst):
-                  print(f'Content mismatch: {rel_path}')
-                  out_of_sync = True
-                  break
+                  if not os.path.exists(full_dst):
+                      debug_print(f"\nMissing in destination: {rel_path}")
+                      out_of_sync = True
+                      break
+                      
+                  if not files_equal(full_src, full_dst):
+                      debug_print(f"\nContent mismatch: {rel_path}")
+                      out_of_sync = True
+                      break
 
-          # Write result
-          with open('../sync_status.txt', 'w') as f:
+          debug_print("\n=== Final Result ===")
+          debug_print("Out of sync:" if out_of_sync else "In sync")
+          
+          # Write result to workspace directory
+          with open('../workspace/sync_status.txt', 'w') as f:
               f.write('out_of_sync' if out_of_sync else 'in_sync')
-
-          sys.exit(1 if out_of_sync else 0)
           EOF
 
       - name: Set status output
         id: result
-        run: echo "sync_status=$(cat src/sync_status.txt)" >> $GITHUB_OUTPUT
+        run: |
+          echo "Reading sync status..."
+          if [ -f "workspace/sync_status.txt" ]; then
+            SYNC_STATUS=$(cat workspace/sync_status.txt)
+            echo "sync_status=${SYNC_STATUS}" >> $GITHUB_OUTPUT
+            echo "status=${SYNC_STATUS}" >> $GITHUB_ENV
+            echo "Sync status: ${SYNC_STATUS}"
+          else
+            echo "sync_status=error" >> $GITHUB_OUTPUT
+            echo "status=error" >> $GITHUB_ENV
+            echo "Error: sync_status.txt not found"
+          fi
 
-      # ... [rest of your existing workflow steps remain unchanged] ...
-
-      - name: Update PR title with sync badge
-        if: always()
+      - name: Create Status Check
         uses: actions/github-script@v7
         with:
           script: |
+            const status = process.env.status;
+            const conclusion = status === 'in_sync' ? 'success' : (status === 'error' ? 'failure' : 'failure');
+            
+            // Create commit status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: conclusion,
+              context: 'UPM Sync',
+              description: status === 'in_sync' 
+                ? 'UPM package is synced' 
+                : status === 'error' 
+                  ? 'Error checking sync status' 
+                  : 'UPM package is out of sync',
+            });
+
+      - name: Update PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = process.env.status;
             const title = context.payload.pull_request.title;
-            const status = "${{ steps.result.outputs.sync_status }}";
-            const newPrefix = status === 'in_sync' ? '[UPM SYNC ✅]' : '[UPM OUT-OF-SYNC ❌]';
-            const updatedTitle = title.replace(/\[SYNC.*?\]\s*/g, '');
-            const finalTitle = `${newPrefix} ${updatedTitle}`;
+            
+            // Remove all existing sync tags
+            const cleanedTitle = title
+              .replace(/^\[UPM (SYNC|OUT-OF-SYNC)[^\]]*\][\s-]*/g, '')
+              .replace(/^\[SYNC[^\]]*\][\s-]*/g, '')
+              .trim();
+            
+            const newPrefix = status === 'in_sync' 
+              ? '[UPM SYNC ✅]' 
+              : status === 'error'
+                ? '[SYNC ERROR ❗]'
+                : '[UPM OUT-OF-SYNC ❌]';
+            
+            const finalTitle = `${newPrefix} ${cleanedTitle}`;
 
             if (finalTitle !== title) {
               await github.rest.pulls.update({
@@ -124,75 +195,39 @@ jobs:
               });
             }
 
-      - name: Post or update sync comment
-        if: steps.result.outputs.sync_status == 'out_of_sync'
+      - name: Post sync status
+        if: env.status != 'in_sync'
         uses: actions/github-script@v7
         with:
           script: |
-            // Find existing comment
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-            const syncComment = comments.data.find(c => 
-              c.body.includes('**TPromise SDK Sync Required**')
-            );
-
-            const commentBody = `⚠️ **TPromise SDK Sync Required**\n\n` +
-              `Please run **TPromise > Sync to UPM** in Unity to sync the SDK.\n\n` +
-              `Once synced, commit and push the changes to resolve this issue.\n\n` +
-              `*This PR cannot be merged until SDKs are in sync*`;
-
-            if (syncComment) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: syncComment.id,
-                body: commentBody
-              });
+            const status = process.env.status;
+            let commentBody;
+            
+            if (status === 'error') {
+              commentBody = `❗ **Sync Check Error**\n\n` +
+                `There was an error verifying the UPM sync status.\n\n` +
+                `Please check the workflow logs for details.`;
             } else {
-              // Create new comment
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: commentBody
-              });
+              commentBody = `⚠️ **UPM Sync Required**\n\n` +
+                `The UPM package is out of sync with source files.\n\n` +
+                `**Required Action:**\n` +
+                `1. Open Unity project\n` +
+                `2. Go to **TPromise > Sync to UPM**\n` +
+                `3. Commit and push all changes\n\n` +
+                `🔒 *This PR cannot be merged until sync is complete*`;
             }
-
-            // Set check to failed
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'SDK Sync Check',
-              head_sha: context.payload.pull_request.head.sha,
-              status: 'completed',
-              conclusion: 'failure',
-              output: {
-                title: 'SDK Out of Sync',
-                summary: 'TPromise SDK files are not in sync between source and UPM',
-                text: commentBody
-              }
-            });
-
-      - name: Delete sync comment if resolved
-        if: steps.result.outputs.sync_status == 'in_sync'
-        uses: actions/github-script@v7
-        with:
-          script: |
+            
+            // Delete any existing sync comments first
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-
+            
             const syncComments = comments.data.filter(c =>
-              c.body && c.body.includes('**TPromise SDK Sync Required**')
+              c.body && (c.body.includes('**UPM Sync Required**') || c.body.includes('**Sync Check Error**'))
             );
-
+            
             for (const comment of syncComments) {
               await github.rest.issues.deleteComment({
                 owner: context.repo.owner,
@@ -200,18 +235,11 @@ jobs:
                 comment_id: comment.id
               });
             }
-
-            // Set check to success
-            await github.rest.checks.create({
+            
+            // Post new comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: 'SDK Sync Check',
-              head_sha: context.payload.pull_request.head.sha,
-              status: 'completed',
-              conclusion: 'success',
-              output: {
-                title: 'SDK In Sync',
-                summary: 'TPromise SDK files are properly synced',
-                text: 'All SDK files are in sync between source and UPM'
-              }
+              body: commentBody
             });
