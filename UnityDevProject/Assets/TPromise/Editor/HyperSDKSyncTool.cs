@@ -8,14 +8,19 @@ namespace TPromise.Utilities
     public class HyperSDKSyncTool : EditorWindow
     {
         private static readonly string sourcePath = "Assets/TPromise";
-        private static readonly string destinationPath = "upm/com.metaversemagna.tpromise";
+
+        // Resolve to external "upm/com.metaversemagna.tpromise" folder at the project root level
+        private static readonly string destinationPath = Path.Combine(
+            Directory.GetParent(Application.dataPath).Parent.FullName, // Go up to COM.METAVERSEMAGNA.TPROMISE
+            "upm/com.metaversemagna.tpromise"
+        );
+
         private static bool changesDetected = false;
 
         // Main menu item that runs the sync
         [MenuItem("HyperSDK/Sync to Hyper UPM %h", true)]
         private static bool ValidateSyncMenu()
         {
-            // Validation method: return true to enable, false to disable
             changesDetected = !DirectoriesAreEqual(sourcePath, destinationPath);
             return changesDetected;
         }
@@ -35,7 +40,7 @@ namespace TPromise.Utilities
                 Directory.Delete(destinationPath, true);
             }
 
-            Debug.Log("<color=#E7B73DFF>[HyperSDK Sync] Copying from: " + sourcePath + " to: " + destinationPath +"</color>");
+            Debug.Log($"<color=#E7B73DFF>[HyperSDK Sync] Copying from: {sourcePath} to: {destinationPath}</color>");
             CopyDirectory(sourcePath, destinationPath);
             AssetDatabase.Refresh();
             Debug.Log("<color=#3DE73DFF>[HyperSDK Sync] UPM sync complete.</color>");
@@ -49,7 +54,6 @@ namespace TPromise.Utilities
 
         private static void EditorUpdate()
         {
-            // Force menu to revalidate on every update
             Menu.SetChecked("HyperSDK/Sync to Hyper UPM %h", !DirectoriesAreEqual(sourcePath, destinationPath));
         }
 

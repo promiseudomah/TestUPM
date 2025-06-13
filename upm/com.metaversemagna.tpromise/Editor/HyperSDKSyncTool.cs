@@ -1,40 +1,60 @@
 using UnityEditor;
 using UnityEngine;
 using System.IO;
+using System.Linq;
 
 namespace TPromise.Utilities
 {
-    public class HyperSDKSyncTool
+    public class HyperSDKSyncTool : EditorWindow
     {
-        // ✅ Source is still inside Unity project
         private static readonly string sourcePath = "Assets/TPromise";
 
-        // ✅ Destination is now OUTSIDE Unity project, so we calculate from project root
-        private static readonly string destinationPath = "../upm/com.metaversemagna.tpromise";
+        // Resolve to external "upm/com.metaversemagna.tpromise" folder at the project root level
+        private static readonly string destinationPath = Path.Combine(
+            Directory.GetParent(Application.dataPath).Parent.FullName, // Go up to COM.METAVERSEMAGNA.TPROMISE
+            "upm/com.metaversemagna.tpromise"
+        );
 
-        [MenuItem("HyperSDK/Sync to UPM %#s")]
+        private static bool changesDetected = false;
+
+        // Main menu item that runs the sync
+        [MenuItem("HyperSDK/Sync to Hyper UPM %h", true)]
+        private static bool ValidateSyncMenu()
+        {
+            changesDetected = !DirectoriesAreEqual(sourcePath, destinationPath);
+            return changesDetected;
+        }
+
+        [MenuItem("HyperSDK/Sync to Hyper UPM %h", false)]
         public static void SyncToUPM()
         {
-            string fullSourcePath = Path.Combine(Application.dataPath, "TPromise");
-            string fullDestinationPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", destinationPath));
-
-            if (!Directory.Exists(fullSourcePath))
+            if (!Directory.Exists(sourcePath))
             {
-                Debug.LogError("[HyperSDK Sync] Source path not found: " + fullSourcePath);
+                Debug.LogError("[HyperSDK Sync] Source path not found: " + sourcePath);
                 return;
             }
 
-            if (Directory.Exists(fullDestinationPath))
+            if (Directory.Exists(destinationPath))
             {
-                Debug.Log("[HyperSDK Sync] Clearing existing UPM folder...");
-                Directory.Delete(fullDestinationPath, true);
+                Debug.Log("[HyperSDK Sync] Cleaning existing UPM folder...");
+                Directory.Delete(destinationPath, true);
             }
 
-            Debug.Log($"[HyperSDK Sync] Copying from:\n  {fullSourcePath}\nto:\n  {fullDestinationPath}");
-            CopyDirectory(fullSourcePath, fullDestinationPath);
-
+            Debug.Log($"<color=#E7B73DFF>[HyperSDK Sync] Copying from: {sourcePath} to: {destinationPath}</color>");
+            CopyDirectory(sourcePath, destinationPath);
             AssetDatabase.Refresh();
-            Debug.Log("[✅] UPM sync complete.");
+            Debug.Log("<color=#3DE73DFF>[HyperSDK Sync] UPM sync complete.</color>");
+        }
+
+        [InitializeOnLoadMethod]
+        private static void SetupWatcher()
+        {
+            EditorApplication.update += EditorUpdate;
+        }
+
+        private static void EditorUpdate()
+        {
+            Menu.SetChecked("HyperSDK/Sync to Hyper UPM %h", !DirectoriesAreEqual(sourcePath, destinationPath));
         }
 
         private static void CopyDirectory(string sourceDir, string targetDir)
@@ -54,6 +74,34 @@ namespace TPromise.Utilities
                 var targetSubDir = Path.Combine(targetDir, dirName);
                 CopyDirectory(directory, targetSubDir);
             }
+        }
+
+        private static bool DirectoriesAreEqual(string dir1, string dir2)
+        {
+            if (!Directory.Exists(dir1) || !Directory.Exists(dir2))
+                return false;
+
+            var files1 = Directory.GetFiles(dir1, "*", SearchOption.AllDirectories)
+                .Select(f => f.Substring(dir1.Length).TrimStart(Path.DirectorySeparatorChar)).OrderBy(f => f).ToArray();
+            var files2 = Directory.GetFiles(dir2, "*", SearchOption.AllDirectories)
+                .Select(f => f.Substring(dir2.Length).TrimStart(Path.DirectorySeparatorChar)).OrderBy(f => f).ToArray();
+
+            if (files1.Length != files2.Length)
+                return false;
+
+            for (int i = 0; i < files1.Length; i++)
+            {
+                if (files1[i] != files2[i])
+                    return false;
+
+                var file1 = Path.Combine(dir1, files1[i]);
+                var file2 = Path.Combine(dir2, files2[i]);
+
+                if (!File.ReadAllBytes(file1).SequenceEqual(File.ReadAllBytes(file2)))
+                    return false;
+            }
+
+            return true;
         }
     }
 }
