@@ -29,19 +29,18 @@ jobs:
 
       - name: Compare SDK source and UPM copy
         id: check
-        continue-on-error: true
         run: |
           echo "Checking if src/UnityDevProject/Assets/TPromise and src/upm/com.metaversemagna.tpromise are in sync..."
           
-          cd src
+          # Create workspace directory if it doesn't exist
+          mkdir -p workspace
           
-          # Write initial sync status
-          echo "checking" > ../sync_status.txt
+          cd src
           
           python3 <<EOF
           import os
           import sys
-          import filecmp
+          from pathlib import Path
 
           def debug_print(*args):
               print(*args, file=sys.stderr)
@@ -62,27 +61,9 @@ jobs:
 
           def files_equal(f1, f2):
               try:
-                  # First check file size as quick check
-                  if os.path.getsize(f1) != os.path.getsize(f2):
-                      debug_print(f"Size mismatch: {f1} vs {f2}")
-                      return False
-                  
                   # Compare binary content
                   with open(f1, 'rb') as file1, open(f2, 'rb') as file2:
-                      content1 = file1.read()
-                      content2 = file2.read()
-                      if content1 != content2:
-                          debug_print(f"Content mismatch between:")
-                          debug_print(f"  {f1} (size: {len(content1)})")
-                          debug_print(f"  {f2} (size: {len(content2)})")
-                          
-                          # Find first differing byte
-                          for i, (b1, b2) in enumerate(zip(content1, content2)):
-                              if b1 != b2:
-                                  debug_print(f"First difference at byte {i}: {hex(b1)} vs {hex(b2)}")
-                                  break
-                          return False
-                  return True
+                      return file1.read() == file2.read()
               except Exception as e:
                   debug_print(f"Error comparing {f1} and {f2}: {str(e)}")
                   return False
@@ -91,17 +72,21 @@ jobs:
           dst = 'upm/com.metaversemagna.tpromise'
           out_of_sync = False
 
-          debug_print("\n=== Starting Sync Check ===")
+          debug_print("=== Starting Sync Check ===")
           debug_print(f"Source: {src}")
           debug_print(f"Destination: {dst}")
 
           # Check if directories exist
           if not os.path.exists(src):
               debug_print(f"Error: Source directory {src} does not exist")
+              with open('../workspace/sync_status.txt', 'w') as f:
+                  f.write('error')
               sys.exit(1)
 
           if not os.path.exists(dst):
               debug_print(f"Error: Destination directory {dst} does not exist")
+              with open('../workspace/sync_status.txt', 'w') as f:
+                  f.write('error')
               sys.exit(1)
 
           src_files = walk_files(src)
@@ -115,7 +100,7 @@ jobs:
 
           # Check for missing files
           if len(src_files) != len(dst_files):
-              debug_print(f"\nFile count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files")
+              debug_print(f"\nFile count mismatch: Source {len(src_files)} vs Destination {len(dst_files)}")
               out_of_sync = True
           else:
               debug_print("\nFile counts match")
@@ -139,71 +124,55 @@ jobs:
           debug_print("\n=== Final Result ===")
           debug_print("Out of sync:" if out_of_sync else "In sync")
           
-          # Write result
-          with open('../sync_status.txt', 'w') as f:
+          # Write result to workspace directory
+          with open('../workspace/sync_status.txt', 'w') as f:
               f.write('out_of_sync' if out_of_sync else 'in_sync')
           EOF
 
-          # Capture the Python exit code
-          python_exit_code=$?
-          if [ $python_exit_code -ne 0 ]; then
-            echo "out_of_sync" > ../sync_status.txt
-          fi
-          
-          # Print debug output
-          echo "Python script output:"
-          cat src/../sync_status.txt
-          exit 0
-      
       - name: Set status output
         id: result
         run: |
-          echo "sync_status=$(cat src/sync_status.txt)" >> $GITHUB_OUTPUT
-          echo "status=$(cat src/sync_status.txt)" >> $GITHUB_ENV
+          echo "Reading sync status..."
+          if [ -f "workspace/sync_status.txt" ]; then
+            SYNC_STATUS=$(cat workspace/sync_status.txt)
+            echo "sync_status=${SYNC_STATUS}" >> $GITHUB_OUTPUT
+            echo "status=${SYNC_STATUS}" >> $GITHUB_ENV
+            echo "Sync status: ${SYNC_STATUS}"
+          else
+            echo "sync_status=error" >> $GITHUB_OUTPUT
+            echo "status=error" >> $GITHUB_ENV
+            echo "Error: sync_status.txt not found"
+          fi
 
-      - name: Create Required Status Check
+      - name: Create Status Check
         uses: actions/github-script@v7
         with:
           script: |
             const status = process.env.status;
-            const conclusion = status === 'in_sync' ? 'success' : 'failure';
+            const conclusion = status === 'in_sync' ? 'success' : (status === 'error' ? 'failure' : 'failure');
             
-            // Create required status check
+            // Create commit status
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
               state: conclusion,
-              context: 'UPM Sync Status',
+              context: 'UPM Sync',
               description: status === 'in_sync' 
                 ? 'UPM package is synced' 
-                : 'UPM package is out of sync',
+                : status === 'error' 
+                  ? 'Error checking sync status' 
+                  : 'UPM package is out of sync',
             });
 
-            // Additional check for visibility
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'UPM Package Sync',
-              head_sha: context.payload.pull_request.head.sha,
-              status: 'completed',
-              conclusion: conclusion,
-              output: {
-                title: status === 'in_sync' ? 'Sync OK' : 'Sync Required',
-                summary: status === 'in_sync'
-                  ? 'All files are synchronized'
-                  : 'Run Sync to UPM in Unity and commit changes',
-              }
-            });
-
-      - name: Update PR title with sync badge
+      - name: Update PR title
         uses: actions/github-script@v7
         with:
           script: |
             const status = process.env.status;
             const title = context.payload.pull_request.title;
             
-            // Remove ALL existing sync tags (both old and new formats)
+            // Remove all existing sync tags
             const cleanedTitle = title
               .replace(/^\[UPM (SYNC|OUT-OF-SYNC)[^\]]*\][\s-]*/g, '')
               .replace(/^\[SYNC[^\]]*\][\s-]*/g, '')
@@ -211,7 +180,9 @@ jobs:
             
             const newPrefix = status === 'in_sync' 
               ? '[UPM SYNC ✅]' 
-              : '[UPM OUT-OF-SYNC ❌]';
+              : status === 'error'
+                ? '[SYNC ERROR ❗]'
+                : '[UPM OUT-OF-SYNC ❌]';
             
             const finalTitle = `${newPrefix} ${cleanedTitle}`;
 
@@ -224,19 +195,28 @@ jobs:
               });
             }
 
-      - name: Post sync warning
-        if: env.status == 'out_of_sync'
+      - name: Post sync status
+        if: env.status != 'in_sync'
         uses: actions/github-script@v7
         with:
           script: |
-            const commentBody = `🚨 **UPM Sync Required**\n\n` +
-              `The UPM package is out of sync with source files.\n\n` +
-              `**Required Action:**\n` +
-              `1. Open Unity project\n` +
-              `2. Go to **TPromise > Sync to UPM**\n` +
-              `3. Commit and push all changes\n\n` +
-              `🔒 *This PR cannot be merged until sync is complete*`;
-              
+            const status = process.env.status;
+            let commentBody;
+            
+            if (status === 'error') {
+              commentBody = `❗ **Sync Check Error**\n\n` +
+                `There was an error verifying the UPM sync status.\n\n` +
+                `Please check the workflow logs for details.`;
+            } else {
+              commentBody = `⚠️ **UPM Sync Required**\n\n` +
+                `The UPM package is out of sync with source files.\n\n` +
+                `**Required Action:**\n` +
+                `1. Open Unity project\n` +
+                `2. Go to **TPromise > Sync to UPM**\n` +
+                `3. Commit and push all changes\n\n` +
+                `🔒 *This PR cannot be merged until sync is complete*`;
+            }
+            
             // Delete any existing sync comments first
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -245,7 +225,7 @@ jobs:
             });
             
             const syncComments = comments.data.filter(c =>
-              c.body && c.body.includes('**UPM Sync Required**')
+              c.body && (c.body.includes('**UPM Sync Required**') || c.body.includes('**Sync Check Error**'))
             );
             
             for (const comment of syncComments) {
