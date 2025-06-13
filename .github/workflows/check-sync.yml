@@ -29,7 +29,7 @@ jobs:
 
       - name: Compare SDK source and UPM copy
         id: check
-        continue-on-error: true  # Continue even if this step fails
+        continue-on-error: true
         run: |
           echo "Checking if src/UnityDevProject/Assets/TPromise and src/upm/com.metaversemagna.tpromise are in sync..."
           
@@ -112,30 +112,40 @@ jobs:
         id: result
         run: |
           echo "sync_status=$(cat src/sync_status.txt)" >> $GITHUB_OUTPUT
-          echo "Python exit code: ${{ steps.check.outcome }}"
+          echo "status=$(cat src/sync_status.txt)" >> $GITHUB_ENV
 
-      - name: Create Sync Check
+      - name: Create Required Status Check
         uses: actions/github-script@v7
         with:
           script: |
-            const status = "${{ steps.result.outputs.sync_status }}";
+            const status = process.env.status;
             const conclusion = status === 'in_sync' ? 'success' : 'failure';
             
+            // Create required status check
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: conclusion,
+              context: 'UPM Sync Status',
+              description: status === 'in_sync' 
+                ? 'UPM package is synced' 
+                : 'UPM package is out of sync',
+            });
+
+            // Additional check for visibility
             await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: 'UPM Sync Check',
+              name: 'UPM Package Sync',
               head_sha: context.payload.pull_request.head.sha,
               status: 'completed',
               conclusion: conclusion,
               output: {
-                title: status === 'in_sync' ? 'UPM In Sync' : 'UPM Out of Sync',
-                summary: status === 'in_sync' 
-                  ? 'All UPM package files are properly synced' 
-                  : 'UPM package files are not in sync with source',
-                text: status === 'in_sync'
-                  ? '✅ All files are synchronized between source and UPM package'
-                  : '⚠️ Please run **TPromise > Sync to UPM** in Unity and commit the changes'
+                title: status === 'in_sync' ? 'Sync OK' : 'Sync Required',
+                summary: status === 'in_sync'
+                  ? 'All files are synchronized'
+                  : 'Run Sync to UPM in Unity and commit changes',
               }
             });
 
@@ -143,7 +153,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const status = "${{ steps.result.outputs.sync_status }}";
+            const status = process.env.status;
             const title = context.payload.pull_request.title;
             const newPrefix = status === 'in_sync' ? '[UPM SYNC ✅]' : '[UPM OUT-OF-SYNC ❌]';
             const updatedTitle = title.replace(/\[UPM SYNC.*?\]\s*/g, '');
@@ -158,57 +168,30 @@ jobs:
               });
             }
 
-      - name: Post or update sync comment
-        if: steps.result.outputs.sync_status == 'out_of_sync'
+      - name: Post sync warning
+        if: env.status == 'out_of_sync'
         uses: actions/github-script@v7
         with:
           script: |
+            const commentBody = `🚨 **UPM Sync Required**\n\n` +
+              `The UPM package is out of sync with source files.\n\n` +
+              `**Required Action:**\n` +
+              `1. Open Unity project\n` +
+              `2. Go to **TPromise > Sync to UPM**\n` +
+              `3. Commit and push all changes\n\n` +
+              `🔒 *This PR cannot be merged until sync is complete*`;
+              
+            // Delete any existing sync comments first
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-
-            const syncComment = comments.data.find(c => 
-              c.body.includes('**UPM Sync Required**')
-            );
-
-            const commentBody = `⚠️ **UPM Sync Required**\n\n` +
-              `The UPM package is out of sync with the source files.\n\n` +
-              `Please run **TPromise > Sync to UPM** in Unity and commit the changes.\n\n` +
-              `*This PR cannot be merged until UPM package is in sync*`;
-
-            if (syncComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: syncComment.id,
-                body: commentBody
-              });
-            } else {
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: commentBody
-              });
-            }
-
-      - name: Delete sync comment if resolved
-        if: steps.result.outputs.sync_status == 'in_sync'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-
+            
             const syncComments = comments.data.filter(c =>
               c.body && c.body.includes('**UPM Sync Required**')
             );
-
+            
             for (const comment of syncComments) {
               await github.rest.issues.deleteComment({
                 owner: context.repo.owner,
@@ -216,3 +199,11 @@ jobs:
                 comment_id: comment.id
               });
             }
+            
+            // Post new comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
