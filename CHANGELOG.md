@@ -1,3 +1,22 @@
+# [2.2.0](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.1.3...v2.2.0) (2025-06-13)
+
+
+### Bug Fixes
+
+* changed color to cyan ([90aea85](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/90aea8558ddd0cadb84867dc662202790c808c1a))
+* changed color to red ([97beba4](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/97beba4844854abab35c3871e3c3ebe236afc1d2))
+* changed color to yellow ([9a18d92](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/9a18d92ca5b5009ec07ec6ce123b16c8f5209df5))
+* fixed camera bugs ([d3fcc3e](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/d3fcc3eadbf8b701c9958c540ad4ea791fe366af))
+* removed comments ([4a0a9dc](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/4a0a9dc23bb6b7a012333b3ece8d76df7b6c462f))
+* tweaked colors ([bfc43ec](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/bfc43eca97492e6379a9eec59bd367fbc33c8a13))
+* tweaked colors again finals ([45d399f](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/45d399f5c88c25a540315db05590f152fdcd31ff))
+
+
+### Features
+
+* add tournament sync system ([2ac29c6](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/2ac29c6145ea875538088c766ed031955bacbad9))
+* updated camera color ([4a0eba1](https://github.com/promiseudomah/com.metaversemagna.tpromise/commit/4a0eba16d0a19c24d1a292d80a4f9a55f7aa3a10))
+
 ## [2.1.3](https://github.com/promiseudomah/com.metaversemagna.tpromise/compare/v2.1.2...v2.1.3) (2025-06-12)
 
 
