@@ -1,7 +1,7 @@
 {
   "name": "com.metaversemagna.tpromise",
   "version": "2.2.0",
-  "displayName": "T Promise",
+  "displayName": "T Promise SDK",
   "description": "SDK for integrating games with the Metaverse Magna platform.",
   "unity": "2022.3",
   "unityRelease": "0b5",
@@ -15,7 +15,7 @@
     "verified"
   ],
   "author": {
-    "name": "Promise",
+    "name": "Metaverse Magna Inc.",
     "email": "your@email.com",
     "url": "https://mvm.gg/"
   },
