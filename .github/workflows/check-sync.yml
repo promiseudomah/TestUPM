@@ -155,9 +155,18 @@ jobs:
           script: |
             const status = process.env.status;
             const title = context.payload.pull_request.title;
-            const newPrefix = status === 'in_sync' ? '[UPM SYNC ✅]' : '[UPM OUT-OF-SYNC ❌]';
-            const updatedTitle = title.replace(/\[UPM SYNC.*?\]\s*/g, '');
-            const finalTitle = `${newPrefix} ${updatedTitle}`;
+            
+            // Remove ALL existing sync tags (both old and new formats)
+            const cleanedTitle = title
+              .replace(/^\[UPM (SYNC|OUT-OF-SYNC)[^\]]*\][\s-]*/g, '')
+              .replace(/^\[SYNC[^\]]*\][\s-]*/g, '')
+              .trim();
+            
+            const newPrefix = status === 'in_sync' 
+              ? '[UPM SYNC ✅]' 
+              : '[UPM OUT-OF-SYNC ❌]';
+            
+            const finalTitle = `${newPrefix} ${cleanedTitle}`;
 
             if (finalTitle !== title) {
               await github.rest.pulls.update({
