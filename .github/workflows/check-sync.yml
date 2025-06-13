@@ -41,61 +41,104 @@ jobs:
           python3 <<EOF
           import os
           import sys
+          import filecmp
+
+          def debug_print(*args):
+              print(*args, file=sys.stderr)
 
           def walk_files(base):
               if not os.path.exists(base):
+                  debug_print(f"Directory does not exist: {base}")
                   return []
-              return sorted([
-                  os.path.relpath(os.path.join(root, f), base)
-                  for root, _, files in os.walk(base)
-                  for f in files
-                  if not f.endswith('.meta')
-              ])
+              files = []
+              for root, _, filenames in os.walk(base):
+                  for f in filenames:
+                      if f.endswith('.meta'):
+                          continue
+                      full_path = os.path.join(root, f)
+                      rel_path = os.path.relpath(full_path, base)
+                      files.append(rel_path)
+              return sorted(files)
 
           def files_equal(f1, f2):
               try:
+                  # First check file size as quick check
+                  if os.path.getsize(f1) != os.path.getsize(f2):
+                      debug_print(f"Size mismatch: {f1} vs {f2}")
+                      return False
+                  
+                  # Compare binary content
                   with open(f1, 'rb') as file1, open(f2, 'rb') as file2:
-                      return file1.read() == file2.read()
+                      content1 = file1.read()
+                      content2 = file2.read()
+                      if content1 != content2:
+                          debug_print(f"Content mismatch between:")
+                          debug_print(f"  {f1} (size: {len(content1)})")
+                          debug_print(f"  {f2} (size: {len(content2)})")
+                          
+                          # Find first differing byte
+                          for i, (b1, b2) in enumerate(zip(content1, content2)):
+                              if b1 != b2:
+                                  debug_print(f"First difference at byte {i}: {hex(b1)} vs {hex(b2)}")
+                                  break
+                          return False
+                  return True
               except Exception as e:
-                  print(f'Error comparing files: {e}')
+                  debug_print(f"Error comparing {f1} and {f2}: {str(e)}")
                   return False
 
           src = 'UnityDevProject/Assets/TPromise'
           dst = 'upm/com.metaversemagna.tpromise'
           out_of_sync = False
 
+          debug_print("\n=== Starting Sync Check ===")
+          debug_print(f"Source: {src}")
+          debug_print(f"Destination: {dst}")
+
           # Check if directories exist
           if not os.path.exists(src):
-              print(f'Error: Source directory {src} does not exist')
+              debug_print(f"Error: Source directory {src} does not exist")
               sys.exit(1)
 
           if not os.path.exists(dst):
-              print(f'Error: Destination directory {dst} does not exist')
+              debug_print(f"Error: Destination directory {dst} does not exist")
               sys.exit(1)
 
           src_files = walk_files(src)
           dst_files = walk_files(dst)
 
+          debug_print(f"\nSource files ({len(src_files)}):")
+          debug_print("\n".join(src_files[:10]) + ("\n..." if len(src_files) > 10 else ""))
+          
+          debug_print(f"\nDestination files ({len(dst_files)}):")
+          debug_print("\n".join(dst_files[:10]) + ("\n..." if len(dst_files) > 10 else ""))
+
           # Check for missing files
           if len(src_files) != len(dst_files):
-              print(f'File count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files')
+              debug_print(f"\nFile count mismatch: Source has {len(src_files)} files, Destination has {len(dst_files)} files")
               out_of_sync = True
+          else:
+              debug_print("\nFile counts match")
 
           # Compare files
-          for rel_path in src_files:
-              full_src = os.path.join(src, rel_path)
-              full_dst = os.path.join(dst, rel_path)
-              
-              if not os.path.exists(full_dst):
-                  print(f'Missing in destination: {rel_path}')
-                  out_of_sync = True
-                  break
+          if not out_of_sync:
+              for rel_path in src_files:
+                  full_src = os.path.join(src, rel_path)
+                  full_dst = os.path.join(dst, rel_path)
                   
-              if not files_equal(full_src, full_dst):
-                  print(f'Content mismatch: {rel_path}')
-                  out_of_sync = True
-                  break
+                  if not os.path.exists(full_dst):
+                      debug_print(f"\nMissing in destination: {rel_path}")
+                      out_of_sync = True
+                      break
+                      
+                  if not files_equal(full_src, full_dst):
+                      debug_print(f"\nContent mismatch: {rel_path}")
+                      out_of_sync = True
+                      break
 
+          debug_print("\n=== Final Result ===")
+          debug_print("Out of sync:" if out_of_sync else "In sync")
+          
           # Write result
           with open('../sync_status.txt', 'w') as f:
               f.write('out_of_sync' if out_of_sync else 'in_sync')
@@ -106,8 +149,12 @@ jobs:
           if [ $python_exit_code -ne 0 ]; then
             echo "out_of_sync" > ../sync_status.txt
           fi
-          exit 0  # Always exit successfully from the step
-
+          
+          # Print debug output
+          echo "Python script output:"
+          cat src/../sync_status.txt
+          exit 0
+      
       - name: Set status output
         id: result
         run: |
